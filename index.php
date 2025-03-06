@@ -11,6 +11,7 @@ include 'check_session.php';
     <link rel="icon" type="image/png" href="/images/chm.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Estilos existentes */
         .produzindo {
             border: 3px solid #0dcaf0; /* Azul */
             position: relative;
@@ -139,13 +140,13 @@ include 'check_session.php';
         <div class="container">
             <ul class="navbar-nav mx-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="upload.html">IMPORTAR</a>
+                    <a class="nav-link" href="upload.php">IMPORTAR</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="index.html">VENDAS</a>
+                    <a class="nav-link" href="index.php">VENDAS</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="estoque.html">ESTOQUE</a>
+                    <a class="nav-link" href="estoque.php">ESTOQUE</a>
                 </li>
                 <a href="logout.php" class="btn btn-danger">Sair</a>
             </ul>
@@ -241,6 +242,7 @@ include 'check_session.php';
                                 <small class="text-muted">${venda.plataforma}</small><br>
                                 Pedido: ${venda.pedido_plataforma}<br>
                                 Quantidade: ${venda.qtd_produto}
+                                <br><small class="text-muted" id="usuario-${venda.id}">Modificado por: ${venda.usuario_modificador || ''}</small>
                             </p>
                             <div class="d-flex gap-2">
                                 <button onclick="marcarStatus(${venda.id}, 'produzindo', ${venda.produzindo})" 
@@ -276,11 +278,21 @@ include 'check_session.php';
         // Função para marcar status
         async function marcarStatus(id, campo, valorAtual) {
             const novoValor = valorAtual === 1 ? 0 : 1;
-            await fetch('marcar_status.php', {
+            const usuario = "<?php echo $_SESSION['usuario']; ?>"; // Obtém o nome do usuário da sessão
+
+            // Atualiza o status do produto e o usuário modificador
+            const response = await fetch('marcar_status.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `id=${id}&campo=${campo}&valor=${novoValor}`
             });
+
+            const result = await response.text();
+            console.log(result); // Log para depuração
+
+            // Atualiza a interface do usuário
+            document.getElementById(`usuario-${id}`).textContent = `Atualizado por: ${usuario}`;
+
             carregarVendas(filtroAtual); // Recarrega as vendas com o filtro atual
         }
 
