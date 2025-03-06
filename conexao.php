@@ -1,8 +1,8 @@
 <?php
 $host = 'localhost';
-$usuario = 'cvhm_vendas';
-$senha = 'Genesis2010@';
-$banco = 'cvhm_vendas';
+$usuario = '';
+$senha = '@';
+$banco = '';
 
 $conexao = new mysqli($host, $usuario, $senha, $banco);
 
