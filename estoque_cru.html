@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque Crú Henrique</title>
+    <link rel="icon" type="image/png" href="/images/chm.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .badge {
+            font-size: 14px;
+        }
+        .table th, .table td {
+            vertical-align: middle; /* Centraliza o conteúdo das células */
+        }
+        .btn-sm {
+            margin: 2px; /* Espaçamento entre os botões */
+        }
+        .disabled-input {
+            background-color: #f8f9fa;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <header class="text-center">
+        <img src="titulo.png" alt="Título" class="img-fluid titulo-img">
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <ul class="navbar-nav mx-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">VENDAS</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="estoque.html">ESTOQUE</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="estoque_cru.html">ESTOQUE CRÚ HENRIQUE</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <h4>Estoque Crú Henrique</h4>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Quantidade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="estoqueCruHenrique">
+                        <!-- Dados serão carregados via JavaScript -->
+                    </tbody>
+                </table>
+                <button class="btn btn-primary" onclick="adicionarItem()">Adicionar Item</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para carregar o estoque
+        async function carregarEstoque() {
+            const response = await fetch('listar_estoque.php');
+            const data = await response.json();
+
+            // Atualiza a tabela de Estoque Crú Henrique
+            const estoqueCruHenrique = document.getElementById('estoqueCruHenrique');
+            estoqueCruHenrique.innerHTML = '';
+
+            if (data.materia_prima_secundaria && data.materia_prima_secundaria.length > 0) {
+                data.materia_prima_secundaria.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.descricao}</td>
+                        <td>
+                            <input type="number" class="form-control disabled-input" value="${item.quantidade}" id="input-${item.id}" readonly>
+                        </td>
+                        <td>
+                            <button onclick="editarQuantidade(${item.id})" class="btn btn-warning btn-sm" id="btn-editar-${item.id}">Editar</button>
+                            <button onclick="removerItem(${item.id}, 'secundaria')" class="btn btn-danger btn-sm">Remover</button>
+                        </td>
+                    `;
+                    estoqueCruHenrique.appendChild(row);
+                });
+            } else {
+                estoqueCruHenrique.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center">Nenhum item encontrado.</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Função para editar/salvar a quantidade
+        function editarQuantidade(id) {
+            const input = document.getElementById(`input-${id}`);
+            const btnEditar = document.getElementById(`btn-editar-${id}`);
+
+            if (btnEditar.textContent === "Editar") {
+                // Libera o campo para edição
+                input.classList.remove('disabled-input');
+                input.readOnly = false;
+                input.focus();
+                btnEditar.textContent = "Salvar";
+                btnEditar.classList.remove('btn-warning');
+                btnEditar.classList.add('btn-success');
+            } else {
+                // Bloqueia o campo após salvar
+                const quantidade = input.value;
+                if (quantidade === "" || isNaN(quantidade)) {
+                    alert("Por favor, insira uma quantidade válida.");
+                    return;
+                }
+
+                atualizarEstoque(id, 'secundaria', quantidade); // Atualiza o estoque
+                input.classList.add('disabled-input');
+                input.readOnly = true;
+                btnEditar.textContent = "Editar";
+                btnEditar.classList.remove('btn-success');
+                btnEditar.classList.add('btn-warning');
+            }
+        }
+
+        // Função para atualizar o estoque
+        async function atualizarEstoque(id, tipo, quantidade) {
+            const response = await fetch('atualizar_estoque.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `id=${id}&tipo=${tipo}&quantidade=${quantidade}&acao=atualizar`
+            });
+
+            const resultado = await response.text();
+            if (resultado === "Estoque atualizado!") {
+                alert("Estoque atualizado com sucesso!");
+                carregarEstoque(); // Recarrega o estoque após a atualização
+            } else {
+                alert("Erro ao atualizar estoque: " + resultado);
+            }
+        }
+
+        // Função para remover item do estoque
+        async function removerItem(id, tipo) {
+            if (!confirm("Tem certeza que deseja remover este item?")) return;
+
+            const response = await fetch('atualizar_estoque.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `id=${id}&tipo=${tipo}&acao=remover`
+            });
+
+            const resultado = await response.text();
+            if (resultado === "Estoque atualizado!") {
+                alert("Item removido com sucesso!");
+                carregarEstoque(); // Recarrega o estoque após a remoção
+            } else {
+                alert("Erro ao remover item: " + resultado);
+            }
+        }
+
+        // Função para adicionar novo item
+        async function adicionarItem() {
+            const descricao = prompt("Digite a descrição do item:");
+            if (descricao) {
+                const quantidade = prompt("Digite a quantidade inicial:");
+                if (quantidade && !isNaN(quantidade)) {
+                    await fetch('adicionar_numeracao.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `descricao=${encodeURIComponent(descricao)}&quantidade=${quantidade}&tipo=secundaria`
+                    });
+                    carregarEstoque(); // Recarrega o estoque após adicionar
+                } else {
+                    alert("Quantidade inválida.");
+                }
+            }
+        }
+
+        // Carregar estoque ao abrir a página
+        document.addEventListener("DOMContentLoaded", function () {
+            carregarEstoque();
+        });
+    </script>
+</body>
+</html>
